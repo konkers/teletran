@@ -7,13 +7,16 @@ import (
 	"io/ioutil"
 
 	"github.com/konkers/teletran"
+	"github.com/konkers/teletran/store"
 	"github.com/konkers/teletran/user"
 )
 
 var configFilename string
+var storeConfigFilename string
 
 func init() {
 	flag.StringVar(&configFilename, "config", "teletran.json", "Config file.")
+	flag.StringVar(&storeConfigFilename, "store-config", "store.json", "Store config file.")
 }
 
 func main() {
@@ -32,6 +35,19 @@ func main() {
 		return
 	}
 
+	b, err = ioutil.ReadFile(storeConfigFilename)
+	if err != nil {
+		fmt.Printf("Error reading from %s: %s\n", configFilename, err.Error())
+		return
+	}
+
+	var storeConfig store.Config
+	err = json.Unmarshal(b, &storeConfig)
+	if err != nil {
+		fmt.Printf("Error decoding config: %s\n", err.Error())
+		return
+	}
+
 	bot, err := teletran.NewBot(&config)
 	if err != nil {
 		fmt.Printf("Error creating bot: %s\n", err.Error())
@@ -39,6 +55,7 @@ func main() {
 	}
 
 	_ = user.NewUserModule(bot)
+	_ = store.NewStoreModule(bot, &storeConfig)
 
 	bot.Run()
 }

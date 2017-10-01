@@ -46,6 +46,10 @@ func (um *UserModule) whoamiCommand(ctx *teletran.CommandContext, args []string)
 	}
 }
 
+func (um *UserModule) GetAuthor(ctx *teletran.CommandContext) (*User, error) {
+	return um.GetUser(ctx.Message.Author.ID)
+}
+
 func (um *UserModule) GetUser(ID string) (*User, error) {
 	var user User
 	err := um.db.One("ID", ID, &user)
