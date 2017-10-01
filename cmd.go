@@ -1,4 +1,4 @@
-package main
+package teletran
 
 import (
 	"fmt"
@@ -7,7 +7,21 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
-type Command func(s *discordgo.Session, m *discordgo.MessageCreate, args []string)
+type CommandContext struct {
+	Session *discordgo.Session
+	Message *discordgo.MessageCreate
+	Bot     *Bot
+}
+
+func (ctx *CommandContext) SendResponse(message string) {
+	ctx.Session.ChannelMessageSend(ctx.Message.ChannelID, message)
+}
+
+func (ctx *CommandContext) IsAdmin() bool {
+	return ctx.Bot.IsAdmin(ctx)
+}
+
+type Command func(ctx *CommandContext, args []string)
 
 type commandInfo struct {
 	run        Command
@@ -40,33 +54,30 @@ func (c *CommandSet) AddCommand(name string, help string,
 	}
 }
 
-func (c *CommandSet) Exec(s *discordgo.Session,
-	m *discordgo.MessageCreate, args []string) {
+func (c *CommandSet) Exec(ctx *CommandContext, args []string) {
 
-	if len(args) == 0 {
-		s.ChannelMessageSend(m.ChannelID, "TODO: add help")
-		return
-	}
-
-	if args[0] == "help" {
-		s.ChannelMessageSend(m.ChannelID, c.HelpMsg(isAdmin(m.Author)))
+	if len(args) == 0 || args[0] == "help" {
+		c.Help(ctx)
 		return
 	}
 
 	cmd, ok := c.commands[args[0]]
 
 	if !ok {
-		s.ChannelMessageSend(m.ChannelID,
-			fmt.Sprintf("Command \"%s\" not found", args[0]))
+		ctx.SendResponse(fmt.Sprintf("Command \"%s\" not found", args[0]))
 		return
 	}
 
-	if cmd.needsAdmin && !isAdmin(m.Author) {
-		s.ChannelMessageSend(m.ChannelID, "Begone pretender!")
+	if cmd.needsAdmin && !ctx.IsAdmin() {
+		ctx.SendResponse("Begone pretender!")
 		return
 	}
 
-	cmd.run(s, m, args[1:])
+	cmd.run(ctx, args[1:])
+}
+
+func (c *CommandSet) Help(ctx *CommandContext) {
+	ctx.SendResponse(c.HelpMsg(ctx.IsAdmin()))
 }
 
 func (c *CommandSet) HelpMsg(isAdmin bool) string {
