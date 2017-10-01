@@ -30,10 +30,15 @@ func NewUserModule(bot *teletran.Bot) *UserModule {
 
 func (um *UserModule) whoamiCommand(ctx *teletran.CommandContext, args []string) {
 	var userId string
+	var err error
 	if len(args) == 0 {
 		userId = ctx.Message.Author.ID
 	} else {
-		userId = args[0]
+		userId, err = ctx.LookupUser(args[0])
+		if err != nil {
+			ctx.SendResponse(err.Error())
+			return
+		}
 	}
 
 	user, err := um.GetUser(userId)

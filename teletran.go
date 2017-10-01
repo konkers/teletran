@@ -59,6 +59,31 @@ func (b *Bot) IsAdmin(ctx *CommandContext) bool {
 	return ok && admin
 }
 
+func (ctx *CommandContext) LookupUser(user string) (string, error) {
+	// TODO(konkers): Support more than 1000 members.
+	channel, err := ctx.Session.Channel(ctx.Message.ChannelID)
+	if err != nil {
+		return "", err
+	}
+
+	members, err := ctx.Session.GuildMembers(channel.GuildID, "", 1000)
+	if err != nil {
+		return "", err
+	}
+
+	for _, member := range members {
+		if member.User.ID == user {
+			return member.User.ID, nil
+		}
+
+		if member.User.Username == user {
+			return member.User.ID, nil
+		}
+	}
+
+	return "", fmt.Errorf("Can't find user %s.", user)
+}
+
 func (b *Bot) AddCommand(name string, help string, command Command) {
 	b.commands.AddCommand(name, help, command, false)
 }
@@ -89,8 +114,14 @@ func (b *Bot) membersCommand(ctx *CommandContext, args []string) {
 		return
 	}
 
-	data, _ := json.MarshalIndent(members, "", "  ")
+	memberMap := make(map[string]string)
+	for _, member := range members {
+		memberMap[member.User.Username] = member.User.ID
+	}
+
+	data, _ := json.MarshalIndent(memberMap, "", "  ")
 	ctx.SendResponse(string(data))
+	fmt.Printf("%s\n", string(data))
 }
 
 //func creditsCommand(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
