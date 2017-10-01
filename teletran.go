@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"regexp"
 	"strings"
 	"syscall"
 
 	"github.com/asdine/storm"
 	"github.com/bwmarrin/discordgo"
+	"github.com/mattn/go-shellwords"
 )
 
 type Config struct {
@@ -23,6 +23,8 @@ type Bot struct {
 	config   *Config
 	commands *CommandSet
 	db       *storm.DB
+
+	parser *shellwords.Parser
 }
 
 func NewBot(config *Config) (*Bot, error) {
@@ -35,6 +37,7 @@ func NewBot(config *Config) (*Bot, error) {
 		config:   config,
 		commands: NewCommandSet(),
 		db:       db,
+		parser:   shellwords.NewParser(),
 	}
 
 	bot.AddCommand("echo", "echo echo echo echo", bot.echoCommand)
@@ -121,8 +124,6 @@ var admins = map[string]bool{
 	"337056040703229955": true, // konkers
 }
 
-var argsRe = regexp.MustCompile(`\s+`)
-
 func (bot *Bot) Run() {
 
 	// Create a new Discord session using the provided bot token.
@@ -178,13 +179,18 @@ func (bot *Bot) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) 
 	}
 
 	if strings.HasPrefix(m.Content, bot.config.CommandPrefix) {
-		args := argsRe.Split(strings.TrimPrefix(m.Content, bot.config.CommandPrefix), -1)
-		fmt.Printf("%q\n", args)
 		ctx := &CommandContext{
 			Session: s,
 			Message: m,
 			Bot:     bot,
 		}
+
+		args, err := bot.parser.Parse(strings.TrimPrefix(m.Content, bot.config.CommandPrefix))
+		if err != nil {
+			ctx.SendResponse("Error parsing command.")
+			return
+		}
+		fmt.Printf("%q\n", args)
 		bot.commands.Exec(ctx, args)
 	}
 }
