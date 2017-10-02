@@ -85,8 +85,7 @@ func (sm *StoreModule) getBalance(userId string) (*balance, error) {
 
 func (sm *StoreModule) getInventory(userId string) ([]Inventory, error) {
 	var inventory []Inventory
-	// err := sm.db.From("inventory").Find("Owner", userId, &inventory)
-	err := sm.db.From("inventory").All(&inventory)
+	err := sm.db.From("inventory").Find("Owner", userId, &inventory)
 	if err == storm.ErrNotFound {
 		return []Inventory{}, nil
 	} else if err != nil {
