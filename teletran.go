@@ -25,6 +25,8 @@ type Bot struct {
 	db       *storm.DB
 
 	parser *shellwords.Parser
+
+	Session *discordgo.Session
 }
 
 func NewBot(config *Config) (*Bot, error) {
@@ -163,6 +165,8 @@ func (bot *Bot) Run() {
 		fmt.Println("Error creating Discord session: ", err)
 		return
 	}
+
+	bot.Session = dg
 
 	// Register ready as a callback for the ready events.
 	dg.AddHandler(bot.ready)
