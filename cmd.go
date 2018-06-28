@@ -2,6 +2,7 @@ package teletran
 
 import (
 	"fmt"
+	"io"
 	"strconv"
 
 	"github.com/bwmarrin/discordgo"
@@ -11,10 +12,25 @@ type CommandContext struct {
 	Session *discordgo.Session
 	Message *discordgo.MessageCreate
 	Bot     *Bot
+	message []byte
 }
 
 func (ctx *CommandContext) SendResponse(message string) {
 	ctx.Session.ChannelMessageSend(ctx.Message.ChannelID, message)
+}
+
+// Implement io.Writer interface
+func (ctx *CommandContext) Write(p []byte) (n int, err error) {
+	ctx.message = append(ctx.message, p...)
+	return len(p), nil
+}
+
+var _ io.Writer = (*CommandContext)(nil)
+
+func (ctx *CommandContext) flushMessage() {
+	if ctx.message != nil {
+		ctx.SendResponse(string(ctx.message))
+	}
 }
 
 func (ctx *CommandContext) IsAdmin() bool {

@@ -223,6 +223,7 @@ func (bot *Bot) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) 
 		}
 		fmt.Printf("%q\n", args)
 		bot.commands.Exec(ctx, args)
+		ctx.flushMessage()
 	}
 }
 
